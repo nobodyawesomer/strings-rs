@@ -21,10 +21,10 @@ fn main() -> Result<()> {
 
 	eprintln!("Filtering for a length of {min_len}");
 	let re = {
-		// ASCII-compatible mode
-		// Capture sequence of printable characters, ending in Null
-		// Substitute in with format!-escaped minimum length
-		let re = format!(r"(?ms)([\s\x20-\x7e]{{{min_len},}})\x00");
+		// Capture sequence of printable characters ending in Null or non-printable
+		// Printable is defined by: Tab, Ascii-printable (0x20 to 0x7E), and all Non-ASCII Unicode except Control & Whitespace characters
+		let pr = r"\t -~[\P{ASCII}--\p{C}\p{Z}]";
+		let re = format!(r"([{pr}]{{{min_len},}})[\x00[^{pr}]]");
 		Regex::new(&re).unwrap()
 	};
 
@@ -32,7 +32,6 @@ fn main() -> Result<()> {
 		let bytes = fs::read(file)?;
 		for cap in re.captures_iter(&bytes) {
 			let s = String::from_utf8_lossy(&cap[1]); // guaranteed 1 capture on match
-										  // println!("++++++++++++++++++++++++\n{s}\n------------------------");
 			println!("{s}");
 		}
 	}
